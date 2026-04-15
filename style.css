@@ -156,6 +156,10 @@ header.scrolled .logo-white {
     width: 100%;
 }
 
+.search-container:focus-within #product-search {
+    color: var(--text); /* Dark text on white focus background */
+}
+
 header.scrolled #product-search {
     color: var(--text);
 }
@@ -171,6 +175,10 @@ header.scrolled .search-icon {
 
 #product-search::placeholder {
     color: rgba(255, 255, 255, 0.7);
+}
+
+.search-container:focus-within #product-search::placeholder {
+    color: var(--text-light);
 }
 
 header.scrolled #product-search::placeholder {
