@@ -648,6 +648,21 @@ document.addEventListener('DOMContentLoaded', () => {
             renderProducts(e.target.value);
             attachCartListeners(); // Re-attach since cards are re-rendered
         });
+
+        // Add "Enter" support to scroll to results
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const shopSection = document.getElementById('shop');
+                if (shopSection) {
+                    // Offset scroll slightly for fixed header
+                    window.scrollTo({
+                        top: shopSection.offsetTop - 100,
+                        behavior: 'smooth'
+                    });
+                }
+                searchInput.blur(); // Remove focus
+            }
+        });
     }
 
     // VIP OFFER TRIGGER - Show after 5 seconds
