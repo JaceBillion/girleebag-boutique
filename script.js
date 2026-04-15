@@ -65,11 +65,28 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- RENDER PRODUCTS ---
-    const renderProducts = () => {
+    const renderProducts = (searchTerm = '') => {
         if (!productContainer) return;
         productContainer.innerHTML = '';
         
-        liveProducts.forEach(product => {
+        const filtered = liveProducts.filter(p => {
+            const query = searchTerm.toLowerCase();
+            return p.name.toLowerCase().includes(query) || 
+                   p.description.toLowerCase().includes(query);
+        });
+
+        if (filtered.length === 0) {
+            productContainer.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 100px 20px; opacity: 0.6;">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
+                    <h3>No bags found matching "${searchTerm}"</h3>
+                    <p>Try a different keyword or check back later!</p>
+                </div>
+            `;
+            return;
+        }
+
+        filtered.forEach(product => {
             const productHTML = `
                 <div class="product-card" data-id="${product.id}">
                     <div class="product-image">
@@ -621,6 +638,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const icon = mobileToggle.querySelector('i');
             icon.classList.toggle('fa-bars');
             icon.classList.toggle('fa-xmark');
+        });
+    }
+
+    // --- PRODUCT SEARCH ---
+    const searchInput = document.getElementById('product-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            renderProducts(e.target.value);
+            attachCartListeners(); // Re-attach since cards are re-rendered
         });
     }
 
