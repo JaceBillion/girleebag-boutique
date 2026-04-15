@@ -44,6 +44,7 @@ create table if not exists leads (
   id bigserial primary key,
   email text not null,
   birthday text,
+  archived boolean default false,
   created_at timestamp with time zone default now()
 );
 alter table leads enable row level security;

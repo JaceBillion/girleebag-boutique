@@ -529,9 +529,14 @@
                                     <p style="font-size: 0.9rem; color: var(--text-light);">Customer list captured from
                                         15% off pop-up</p>
                                 </div>
-                                <button id="clear-leads-btn"
-                                    style="padding: 10px 20px; border-radius: 10px; border: 1px solid #FF4B2B; color: #FF4B2B; background: transparent; font-weight: 600; cursor: pointer;">Clear
-                                    Local Backup</button>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div class="view-toggle" style="display: flex; background: #EEE; padding: 4px; border-radius: 10px;">
+                                        <button id="view-leads-active" class="active" style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Inbox</button>
+                                        <button id="view-leads-archived" style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: transparent;">Vault (Archived)</button>
+                                    </div>
+                                    <button id="archive-all-leads-btn" style="background: #F8F9FA; color: var(--text-light); border: 1px solid #EEE; padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Archive All</button>
+                                    <button id="clear-leads-btn" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #FF4B2B; color: #FF4B2B; background: transparent; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Clear Backup</button>
+                                </div>
                             </div>
                             <div class="message-card" style="padding: 0; overflow: hidden;">
                                 <table
@@ -1083,6 +1088,7 @@
 
         var msgCurrentView = 'inbox';
         var orderCurrentView = 'live';
+        var leadsCurrentView = 'inbox';
 
         // ── MESSAGE CENTER ──────────────────────────────────
         function loadMessages() {
@@ -1146,21 +1152,44 @@
             if (!sbPM) return;
             var list = document.getElementById('leads-list');
             if (!list) return;
-            sbPM.from('leads').select('*').order('created_at', { ascending: false }).then(function (res) {
-                var data = res.data || [];
-                if (!data.length) {
-                    list.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--text-light);">No VIP leads yet.</td></tr>';
-                    return;
+            
+            var isArchived = leadsCurrentView === 'vault';
+            
+            sbPM.from('leads').select('*')
+                .eq('archived', isArchived)
+                .order('created_at', { ascending: false })
+                .then(function (res) {
+                    var data = res.data || [];
+                    if (!data.length) {
+                        list.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--text-light);">No ' + (isArchived ? 'archived leads' : 'active leads') + ' yet.</td></tr>';
+                        return;
+                    }
+                    list.innerHTML = data.map(function (l) {
+                        return '<tr>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;">' + new Date(l.created_at).toLocaleDateString() + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;font-weight:500;">' + l.email + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;color:var(--text-light);">' + (l.birthday || 'N/A') + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;text-align:right;">' +
+                                '<div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;">' +
+                                    '<button onclick="copyEmail(\'' + l.email + '\')" style="background:var(--surface);color:var(--primary);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem;">Copy Email</button>' +
+                                    '<button onclick="adminArchiveLead(\'' + l.id + '\', ' + !isArchived + ')" title="' + (isArchived ? 'Restore' : 'Archive') + '" style="background:none;border:none;color:' + (isArchived ? 'var(--primary)' : 'var(--text-light)') + ';cursor:pointer;font-size:1.1rem;">' +
+                                        '<i class="fa-solid ' + (isArchived ? 'fa-arrow-up-from-bracket' : 'fa-box-archive') + '"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                            '</td></tr>';
+                    }).join('');
+                });
+        }
+
+        function adminArchiveLead(id, archived) {
+            if (!sbPM) return;
+            sbPM.from('leads').update({ archived: archived }).eq('id', id).then(function (res) {
+                if (res.error) {
+                    showToast('Failed to toggle lead status. Run SQL if you haven\'t!', 'error');
+                } else {
+                    showToast('Lead ' + (archived ? 'archived' : 'restored') + '!');
+                    loadLeads();
                 }
-                list.innerHTML = data.map(function (l) {
-                    return '<tr>' +
-                        '<td style="padding:15px;border-bottom:1px solid #EEE;">' + new Date(l.created_at).toLocaleDateString() + '</td>' +
-                        '<td style="padding:15px;border-bottom:1px solid #EEE;font-weight:500;">' + l.email + '</td>' +
-                        '<td style="padding:15px;border-bottom:1px solid #EEE;color:var(--text-light);">' + (l.birthday || 'N/A') + '</td>' +
-                        '<td style="padding:15px;border-bottom:1px solid #EEE;text-align:right;">' +
-                        '<button onclick="copyEmail(\'' + l.email + '\')" style="background:var(--surface);color:var(--primary);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem;">Copy Email</button>' +
-                        '</td></tr>';
-                }).join('');
             });
         }
         function copyEmail(email) { navigator.clipboard.writeText(email).then(function () { showToast('Email copied!'); }); }
@@ -1398,6 +1427,39 @@
                     confirmText: 'Archive All',
                     onConfirm: function () {
                         sbPM.from('messages').update({ archived: true }).eq('archived', false).then(function () { loadMessages(); });
+                    }
+                });
+            });
+
+            // Leads toggles
+            var leadsActiveBtn = document.getElementById('view-leads-active');
+            var leadsVaultBtn = document.getElementById('view-leads-archived');
+            if (leadsActiveBtn) leadsActiveBtn.addEventListener('click', function () {
+                leadsCurrentView = 'inbox';
+                leadsActiveBtn.style.background = 'white'; leadsActiveBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (leadsVaultBtn) { leadsVaultBtn.style.background = 'transparent'; leadsVaultBtn.style.boxShadow = 'none'; }
+                loadLeads();
+            });
+            if (leadsVaultBtn) leadsVaultBtn.addEventListener('click', function () {
+                leadsCurrentView = 'vault';
+                leadsVaultBtn.style.background = 'white'; leadsVaultBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (leadsActiveBtn) { leadsActiveBtn.style.background = 'transparent'; leadsActiveBtn.style.boxShadow = 'none'; }
+                loadLeads();
+            });
+
+            var archiveAllLeadsBtn = document.getElementById('archive-all-leads-btn');
+            if (archiveAllLeadsBtn) archiveAllLeadsBtn.addEventListener('click', function () {
+                if (!sbPM) return;
+                openConfirmModal({
+                    title: 'Archive All Leads?',
+                    message: 'Move all active leads to the vault?',
+                    icon: '<i class="fa-solid fa-box-archive" style="color:var(--primary)"></i>',
+                    confirmText: 'Archive All',
+                    onConfirm: function () {
+                        sbPM.from('leads').update({ archived: true }).eq('archived', false).then(function () { 
+                            showToast('All leads archived!');
+                            loadLeads(); 
+                        });
                     }
                 });
             });
