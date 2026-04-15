@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bunker | GirleeBag Management</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link rel="icon" type="image/png" href="assets/logos/icon_purse_xl.png">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-page {
+            padding-top: 160px;
+            min-height: 100vh;
+            background: #F8F9FA;
+        }
+
+        .login-card {
+            max-width: 400px;
+            margin: 100px auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .login-card input {
+            width: 100%;
+            padding: 15px;
+            margin: 20px 0;
+            border: 2px solid #EEE;
+            border-radius: 12px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .logout-btn {
+            background: #EEE;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+        }
+
+        .admin-sidebar {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+
+        .admin-sidebar ul {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .admin-sidebar li {
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .admin-sidebar li.active {
+            background: var(--surface);
+            color: var(--primary);
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        /* --- NEW: CUSTOM DELETE CONFIRM OVERLAY --- */
+        .message-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .delete-confirm-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
+        }
+
+        .delete-confirm-overlay.active {
+            transform: translateY(0);
+        }
+
+        .confirm-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-confirm-delete {
+            background: #FF4D4D;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-cancel-delete {
+            background: #EEE;
+            color: var(--text);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* TOAST NOTIFICATIONS */
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            min-width: 280px;
+            padding: 16px 25px;
+            border-radius: 16px;
+            background: white;
+            color: var(--text);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            animation: toastSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border-left: 6px solid var(--primary);
+            pointer-events: auto;
+        }
+
+        .toast.error {
+            border-left-color: #FF4D4D;
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastFadeOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card span {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin: 10px 0;
+            color: var(--text);
+        }
+
+        .stat-card .trend {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .trend.up {
+            color: #4CAF50;
+        }
+
+        .trend.down {
+            color: #F44336;
+        }
+
+        .message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message-card {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .subject-badge {
+            background: var(--surface);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: auto;
+        }
+
+        .cta-button {
+            width: 100%;
+            background: var(--primary);
+            color: var(--white);
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- STICKY NAVIGATION -->
+    <header id="main-header" class="scrolled">
+        <div class="container">
+            <div class="nav-main">
+                <div class="logo" style="grid-column: 2;">
+                    <a href="index.html">
+                        <img src="assets/logos/main_logo_circle.png" alt="GirleeBag Logo" class="logo-black"
+                            style="display: block;">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-page">
+        <div class="container">
+
+            <!-- THE BUNKER ACCESS (LOGIN) -->
+            <div id="login-screen" class="login-card">
+                <i class="fa-solid fa-lock" style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"></i>
+                <h2>The Bunker Access</h2>
+                <p>Private business access only.</p>
+                <form id="admin-login-form" onsubmit="return false;">
+                    <input type="password" id="pword" placeholder="Internal Password" autocomplete="off">
+                    <button type="button" class="cta-button" onclick="
+                        var p = document.getElementById('pword').value;
+                        var stored = localStorage.getItem('girlee_bunker_pw') || 'ThePhatFrog2026';
+                        var masterKey = 'GIRLEE-RESCUE-2026-HQ';
+                        if (p === stored || p === masterKey) {
+                            sessionStorage.setItem('girlee_admin_auth', 'true');
+                            document.getElementById('login-screen').style.display = 'none';
+                            document.getElementById('dashboard-content').style.display = 'block';
+                            document.getElementById('error-msg').style.display = 'none';
+                            initAdminDashboard();
+                        } else {
+                            document.getElementById('error-msg').style.display = 'block';
+                        }
+                    ">Access Dashboard</button>
+                    <div style="margin-top: 20px;">
+                        <a href="#" style="font-size: 0.85rem; color: var(--text-light); text-decoration: underline;"
+                            onclick="document.getElementById('login-screen').style.display='none'; document.getElementById('recovery-screen').style.display='block'; return false;">Forgot
+                            Password?</a>
+                    </div>
+                </form>
+                <p id="error-msg" style="color: red; display: none; margin-top: 15px; font-weight: 600;">Access Denied
+                </p>
+            </div>
+
+            <!-- EMERGENCY RECOVERY SCREEN (HIDDEN) -->
+            <div id="recovery-screen" class="login-card" style="display: none;">
+                <i class="fa-solid fa-key" style="font-size: 3rem; color: var(--accent); margin-bottom: 20px;"></i>
+                <h2>Emergency Recovery</h2>
+                <p style="font-size: 0.9rem;">Enter your <strong>Master Recovery Key</strong> to reset your access
+                    password.</p>
+                <form id="recovery-form" onsubmit="return false;">
+                    <input type="text" id="master-key-input" placeholder="MASTER-RECOVERY-KEY" autocomplete="off"
+                        style="text-align: center; font-family: monospace; letter-spacing: 1px;">
+                    <input type="password" id="new-pword-recovery" placeholder="New Password" autocomplete="off">
+                    <button type="button" class="cta-button" style="background: var(--accent);" onclick="
+                        var key = document.getElementById('master-key-input').value.trim().toUpperCase();
+                        var newPw = document.getElementById('new-pword-recovery').value;
+                        if (key === 'GIRLEE-RESCUE-2026-HQ' && newPw.length >= 4) {
+                            localStorage.setItem('girlee_bunker_pw', newPw);
+                            sessionStorage.setItem('girlee_admin_auth', 'true');
+                            location.reload();
+                        } else {
+                            document.getElementById('recovery-error').style.display = 'block';
+                        }
+                    ">Reset &amp; Access Dashboard</button>
+                    <div style="margin-top: 20px;">
+                        <a href="#" style="font-size: 0.85rem; color: var(--text-light);"
+                            onclick="document.getElementById('recovery-screen').style.display='none'; document.getElementById('login-screen').style.display='block'; return false;">Back
+                            to Login</a>
+                    </div>
+                </form>
+                <p id="recovery-error" style="color: red; display: none; margin-top: 15px; font-weight: 600;">Invalid
+                    Master Key — or password too short</p>
+            </div>
+
+            <!-- DASHBOARD CONTENT (hidden until login) -->
+            <div id="dashboard-content" style="display: none;">
+                <div class="dashboard-header">
+                    <div>
+                        <h1>The Bunker Dashboard</h1>
+                        <p id="admin-welcome">Welcome back, Admin</p>
+                    </div>
+                    <button id="logout-btn" class="logout-btn">Logout <i
+                            class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
+                <div class="dashboard-grid">
+                    <aside class="admin-sidebar">
+                        <ul id="admin-tabs">
+                            <li class="active" data-tab="stats"><i class="fa-solid fa-chart-pie"></i> Performance</li>
+                            <li data-tab="orders"><i class="fa-solid fa-file-invoice-dollar"></i> Order Ledger</li>
+                            <li data-tab="messages"><i class="fa-solid fa-envelope"></i> Message Center <span
+                                    id="msg-badge" class="badge">0</span></li>
+                            <li data-tab="leads"><i class="fa-solid fa-users-viewfinder"></i> VIP Leads</li>
+                            <li data-tab="inventory"><i class="fa-solid fa-boxes-stacked"></i> Inventory</li>
+                            <li data-tab="products"><i class="fa-solid fa-shirt"></i> Products</li>
+                            <li data-tab="security"><i class="fa-solid fa-shield-halved"></i> Security</li>
+                        </ul>
+                    </aside>
+
+                    <div class="admin-main">
+                        <!-- STATS TAB -->
+                        <div id="tab-stats" class="tab-content">
+                            <div class="stat-grid">
+                                <div class="stat-card">
+                                    <span>Monthly Sales</span>
+                                    <h3 id="display-sales">$0.00</h3>
+                                    <div class="trend up" id="display-sales-trend"><i class="fa-solid fa-arrow-up"></i>
+                                        0%</div>
+                                </div>
+                                <div class="stat-card">
+                                    <span>New Customers</span>
+                                    <h3 id="display-customers">0</h3>
+                                    <div class="trend up" id="display-customers-trend"><i
+                                            class="fa-solid fa-arrow-up"></i> 0%</div>
+                                </div>
+                                <div class="stat-card">
+                                    <span>Active Carts</span>
+                                    <h3 id="display-carts">0</h3>
+                                    <div class="trend down" id="display-carts-trend"><i
+                                            class="fa-solid fa-arrow-down"></i> 0%</div>
+                                </div>
+                            </div>
+                            <p
+                                style="font-size: 0.8rem; color: var(--text-light); text-align: center; margin-top: 10px;">
+                                Metrics live-synced from GirleeBag Cloud.</p>
+                        </div>
+
+                        <!-- ORDERS TAB -->
+                        <div id="tab-orders" class="tab-content" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px;">
+                                <!-- Record Sale Form -->
+                                <div>
+                                    <h2 style="margin-bottom: 20px;">Record New Sale</h2>
+                                    <div class="message-card">
+                                        <form id="record-order-form">
+                                            <div class="form-group"
+                                                style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="font-weight: 600; font-size: 0.85rem;">Select
+                                                    Product</label>
+                                                <select id="order-product" required
+                                                    style="padding: 12px; border: 2px solid #EEE; border-radius: 10px; appearance: none; background: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px center; background-size: 12px; background-color: white;">
+                                                    <option value="" disabled selected>Loading bags...</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group"
+                                                style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="font-weight: 600; font-size: 0.85rem;">Sale Amount
+                                                    ($)</label>
+                                                <input type="number" id="order-amount" step="0.01" value="44.00"
+                                                    required
+                                                    style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                            </div>
+                                            <div class="form-group"
+                                                style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="font-weight: 600; font-size: 0.85rem;">Customer
+                                                    Name</label>
+                                                <input type="text" id="order-customer" placeholder="Optional"
+                                                    style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                            </div>
+                                            <button type="submit" class="cta-button">Log Order & Sync Metrics</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <!-- Order History -->
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                        <h2 style="margin: 0;">Order History</h2>
+                                        <div class="view-toggle" style="display: flex; background: #EEE; padding: 4px; border-radius: 10px;">
+                                            <button id="view-orders-active" class="active" style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Live Orders</button>
+                                            <button id="view-orders-archived" style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: transparent;">Order Vault</button>
+                                        </div>
+                                    </div>
+                                    <div class="message-card" style="padding: 0; overflow: hidden;">
+                                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                                            <thead style="background: #F8F9FA;">
+                                                <tr>
+                                                    <th style="padding: 15px; border-bottom: 1px solid #EEE;">Date</th>
+                                                    <th style="padding: 15px; border-bottom: 1px solid #EEE;">Product</th>
+                                                    <th style="padding: 15px; border-bottom: 1px solid #EEE;">Customer</th>
+                                                    <th style="padding: 15px; border-bottom: 1px solid #EEE; text-align: right;">Amount</th>
+                                                    <th style="padding: 15px; border-bottom: 1px solid #EEE; text-align: right; width: 60px;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="order-history-list">
+                                                <!-- Orders from cloud will appear here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- MESSAGES TAB -->
+                        <div id="tab-messages" class="tab-content" style="display: none;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                <div style="display: flex; align-items: center; gap: 20px;">
+                                    <h2>Customer Inquiries</h2>
+                                    <div class="view-toggle"
+                                        style="display: flex; background: #EEE; padding: 4px; border-radius: 10px;">
+                                        <button id="view-inbox" class="active"
+                                            style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Inbox</button>
+                                        <button id="view-archive"
+                                            style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: transparent;">Vault
+                                            (Archived)</button>
+                                    </div>
+                                </div>
+                                <button id="archive-all-btn"
+                                    style="background: #F8F9FA; color: var(--text-light); border: 1px solid #EEE; padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Archive
+                                    All Read</button>
+                            </div>
+                            <div id="message-list" class="message-list">
+                                <!-- Messages from localStorage will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- INVENTORY TAB -->
+                        <div id="tab-leads" class="tab-content" style="display: none;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                                <div>
+                                    <h2 style="font-family: 'Playfair Display', serif;">VIP Leads Console</h2>
+                                    <p style="font-size: 0.9rem; color: var(--text-light);">Customer list captured from
+                                        15% off pop-up</p>
+                                </div>
+                                <button id="clear-leads-btn"
+                                    style="padding: 10px 20px; border-radius: 10px; border: 1px solid #FF4B2B; color: #FF4B2B; background: transparent; font-weight: 600; cursor: pointer;">Clear
+                                    Local Backup</button>
+                            </div>
+                            <div class="message-card" style="padding: 0; overflow: hidden;">
+                                <table
+                                    style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+                                    <thead style="background: #F8F9FA;">
+                                        <tr>
+                                            <th style="padding: 15px; border-bottom: 1px solid #EEE;">Joined</th>
+                                            <th style="padding: 15px; border-bottom: 1px solid #EEE;">Email</th>
+                                            <th style="padding: 15px; border-bottom: 1px solid #EEE;">Birthday</th>
+                                            <th
+                                                style="padding: 15px; border-bottom: 1px solid #EEE; text-align: right;">
+                                                Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leads-list">
+                                        <!-- Leads will appear here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- INVENTORY TAB -->
+                        <div id="tab-inventory" class="tab-content" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px;">
+                                <!-- Restock Form -->
+                                <div>
+                                    <h2 style="margin-bottom: 20px;">Restock Manifest</h2>
+                                    <div class="message-card">
+                                        <p style="margin-bottom: 15px; color: var(--text-light); font-size: 0.85rem;">
+                                            Select a product to update its official cloud stock count.</p>
+                                        <form id="restock-form">
+                                            <div class="form-group"
+                                                style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="font-weight: 600; font-size: 0.85rem;">Product to
+                                                    Restock</label>
+                                                <select id="restock-product" required
+                                                    style="padding: 12px; border: 2px solid #EEE; border-radius: 10px; appearance: none; background: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px center; background-size: 12px; background-color: white;">
+                                                    <option value="" disabled selected>Loading bags...</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group"
+                                                style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="font-weight: 600; font-size: 0.85rem;">New Total
+                                                    Stock</label>
+                                                <input type="number" id="restock-count" placeholder="25" required
+                                                    style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                            </div>
+                                            <button type="submit" class="cta-button"
+                                                style="background: var(--text);">Update Stock Records</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <!-- Inventory Status -->
+                                <div>
+                                    <h2 style="margin-bottom: 20px;">Product Health</h2>
+                                    <div id="inventory-list" class="message-list">
+                                        <!-- Inventory summary will appear here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PRODUCTS TAB -->
+                        <div id="tab-products" class="tab-content" style="display: none;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 12px;">
+                                <div>
+                                    <h2 style="font-family: 'Playfair Display', serif;">Product Catalog</h2>
+                                    <p style="font-size: 0.9rem; color: var(--text-light);">Add, edit or remove
+                                        products. Changes go live instantly.</p>
+                                </div>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button onclick="openProductModal(null)" class="cta-button"
+                                        style="padding: 10px 20px;"><i class="fa-solid fa-plus"></i> Add New
+                                        Product</button>
+                                </div>
+                            </div>
+                            <div id="products-grid"
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+                                <p style="color: #999; text-align: center; padding: 40px; grid-column: 1/-1;"><i
+                                        class="fa-solid fa-spinner fa-spin"></i> Loading products...</p>
+                            </div>
+                        </div>
+
+                        <!-- SECURITY TAB -->
+                        <div id="tab-security" class="tab-content" style="display: none;">
+                            <h2 style="margin-bottom: 20px;">Security Management</h2>
+                            <div class="message-card" style="max-width: 500px;">
+                                <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">
+                                    Update the access password for The Bunker. This change will be stored locally in
+                                    your browser.
+                                </p>
+                                <form id="password-change-form">
+                                    <div class="form-group"
+                                        style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                        <label style="font-weight: 600; font-size: 0.85rem;">Current Password</label>
+                                        <input type="password" id="current-pword" required
+                                            style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                    </div>
+                                    <div class="form-group"
+                                        style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                                        <label style="font-weight: 600; font-size: 0.85rem;">New Password</label>
+                                        <input type="password" id="new-pword" required
+                                            style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                    </div>
+                                    <div class="form-group"
+                                        style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+                                        <label style="font-weight: 600; font-size: 0.85rem;">Confirm New
+                                            Password</label>
+                                        <input type="password" id="confirm-pword" required
+                                            style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                    </div>
+                                    <button type="submit" class="cta-button" style="width: 100%;">Update Security
+                                        Code</button>
+                                    <p id="pw-error"
+                                        style="color: #F44336; display: none; margin-top: 15px; font-weight: 700; font-size: 0.85rem;">
+                                    </p>
+                                    <p id="pw-success"
+                                        style="color: #4CAF50; display: none; margin-top: 15px; font-weight: 700; font-size: 0.85rem;">
+                                        Success! New password active.</p>
+                                </form>
+                            </div>
+
+                            <hr style="margin: 40px 0; border: none; border-top: 2px dashed #EEE;">
+
+                            <h2 style="margin-bottom: 20px;">Business Data Control</h2>
+                            <div class="message-card" style="max-width: 550px;">
+                                <p style="margin-bottom: 20px; color: var(--text-light); font-size: 0.9rem;">
+                                    Manually update the performance metrics shown on your 'Performance' tab.
+                                </p>
+                                <form id="metrics-update-form">
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                        <div class="form-group"
+                                            style="display: flex; flex-direction: column; gap: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem;">Monthly Sales
+                                                ($)</label>
+                                            <input type="number" id="input-sales" step="0.01" placeholder="0.00"
+                                                style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                        </div>
+                                        <div class="form-group"
+                                            style="display: flex; flex-direction: column; gap: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem;">Sales Trend (%)</label>
+                                            <input type="number" id="input-sales-trend" step="0.1" placeholder="+10.0"
+                                                style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                        </div>
+                                    </div>
+                                    <div
+                                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                                        <div class="form-group"
+                                            style="display: flex; flex-direction: column; gap: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem;">New Customers</label>
+                                            <input type="number" id="input-customers" placeholder="0"
+                                                style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                        </div>
+                                        <div class="form-group"
+                                            style="display: flex; flex-direction: column; gap: 8px;">
+                                            <label style="font-weight: 600; font-size: 0.85rem;">Active Carts</label>
+                                            <input type="number" id="input-carts" placeholder="0"
+                                                style="padding: 12px; border: 2px solid #EEE; border-radius: 10px;">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="cta-button" style="width: 100%;">Save Professional
+                                        Metrics</button>
+                                    <p id="metrics-success"
+                                        style="color: #4CAF50; display: none; margin-top: 15px; font-weight: 700; font-size: 0.85rem;">
+                                        Metrics Updated successfully!</p>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PRODUCT EDIT MODAL -->
+        <div id="product-modal"
+            style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+            <div
+                style="background:white; border-radius:24px; width:100%; max-width:620px; max-height:90vh; overflow-y:auto; padding:35px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                    <h2 id="pm-title" style="font-size:1.4rem;">Add New Product</h2>
+                    <button onclick="closeProductModal()"
+                        style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">&#x2715;</button>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div style="grid-column:1/-1; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Product Name *</label>
+                        <input id="pm-name" type="text" placeholder="e.g. Amara"
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px; font-size:0.95rem;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Price ($) *</label>
+                        <input id="pm-price" type="number" step="0.01" value="44.00"
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Display Order</label>
+                        <input id="pm-order" type="number" value="0" placeholder="0"
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px;">
+                    </div>
+                    <div style="grid-column:1/-1; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Description</label>
+                        <textarea id="pm-desc" rows="3" placeholder="Describe this bag..."
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px; resize:vertical; font-family:inherit; font-size:0.9rem;"></textarea>
+                    </div>
+                    <div style="grid-column:1/-1; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Stripe Payment Link</label>
+                        <input id="pm-stripe" type="url" placeholder="https://buy.stripe.com/..."
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px;">
+                    </div>
+                    <div style="grid-column:1/-1; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:700; font-size:0.85rem;">Category / Tags</label>
+                        <input id="pm-category" type="text" placeholder="e.g. Tote, Carry All, Beach Bag"
+                            style="padding:12px; border:2px solid #EEE; border-radius:10px;">
+                    </div>
+                </div>
+
+                <!-- IMAGE UPLOAD SECTION -->
+                <div style="margin-bottom:25px;">
+                    <label style="font-weight:700; font-size:0.85rem; display:block; margin-bottom:10px;">Product Images
+                        (up to 4)</label>
+                    <div id="image-previews" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;"></div>
+                    <input type="file" id="image-upload-input" accept="image/*" multiple style="display:none;"
+                        onchange="handleImageUpload(this.files)">
+                    <p style="font-size:0.75rem; color:#999;">Click the + slot to upload. Supports JPG, PNG, WEBP. Max 4
+                        images.</p>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button id="pm-save-btn" onclick="saveProduct()" class="cta-button" style="flex:1;">Save
+                        Product</button>
+                    <button onclick="closeProductModal()"
+                        style="flex:1; background:#F5F5F5; border:none; border-radius:12px; font-weight:700; cursor:pointer; font-family:inherit; font-size:0.95rem;">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOM CONFIRMATION MODAL -->
+        <div id="confirm-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:20000; align-items:center; justify-content:center; padding:20px;">
+            <div style="background:white; border-radius:24px; padding:35px; width:100%; max-width:400px; text-align:center; box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modal-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <div id="cm-icon" style="font-size:3.5rem; margin-bottom:20px;"></div>
+                <h3 id="cm-title" style="margin-bottom:12px; font-size:1.4rem; color:var(--text);">Confirm Action</h3>
+                <p id="cm-message" style="color:var(--text-light); font-size:0.95rem; margin-bottom:30px; line-height:1.6;"></p>
+                <div style="display:flex; gap:12px;">
+                    <button onclick="closeConfirmModal()" style="flex:1; padding:12px; border-radius:12px; border:none; background:#EEE; font-weight:700; cursor:pointer; font-family:inherit;">Cancel</button>
+                    <button id="cm-confirm-btn" style="flex:1; padding:12px; border-radius:12px; border:none; background:var(--primary); color:white; font-weight:700; cursor:pointer; font-family:inherit;">Confirm</button>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes modal-bounce {
+                from { opacity:0; transform: scale(0.8); }
+                to { opacity:1; transform: scale(1); }
+            }
+        </style>
+    </main>
+
+    <script type="module" src="script.js"></script>
+
+    <!-- PRODUCT MANAGEMENT SYSTEM -->
+    <script>
+        const PM_URL = 'https://gqvgrxrkkksgxuaivvpb.supabase.co';
+        const PM_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxdmdyeHJra2tzZ3h1YWl2dnBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDE3MDAsImV4cCI6MjA5MTYxNzcwMH0.C9GzB7ygtEgASjXHRTYSygrhwsa79GD8-QfjYr6lxTw';
+        let sbPM = null;
+        let editingProductId = null;
+        let productImages = [];
+        let productCache = {}; // stores all loaded products by id
+
+        function showToast(msg, type = 'success') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+            const iconColor = type === 'success' ? 'var(--primary)' : '#FF4D4D';
+            toast.innerHTML = `<i class="fa-solid ${icon}" style="color:${iconColor}"></i> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastFadeOut 0.4s forwards';
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        let confirmCallback = null;
+        function openConfirmModal(config) {
+            document.getElementById('cm-title').textContent = config.title || 'Are you sure?';
+            document.getElementById('cm-message').textContent = config.message || '';
+            document.getElementById('cm-icon').innerHTML = config.icon || '<i class="fa-solid fa-circle-question" style="color:var(--primary)"></i>';
+            const btn = document.getElementById('cm-confirm-btn');
+            btn.textContent = config.confirmText || 'Yes, Proceed';
+            btn.style.background = config.confirmColor || 'var(--primary)';
+            confirmCallback = config.onConfirm;
+            btn.onclick = function () {
+                if (confirmCallback) confirmCallback();
+                closeConfirmModal();
+            };
+            document.getElementById('confirm-modal').style.display = 'flex';
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+            confirmCallback = null;
+        }
+
+        function initPM() {
+            try { sbPM = window.supabase.createClient(PM_URL, PM_KEY); } catch (e) { }
+        }
+        // Wait for supabase SDK to load, then init
+        if (window.supabase) { initPM(); }
+        else { document.addEventListener('DOMContentLoaded', function () { setTimeout(initPM, 500); }); }
+
+        // Load products when Products tab is clicked
+        document.addEventListener('click', function (e) {
+            const tab = e.target.closest('[data-tab="products"]');
+            if (tab) { setTimeout(loadAdminProducts, 100); }
+        });
+
+        async function loadAdminProducts() {
+            if (!sbPM) { initPM(); }
+            const grid = document.getElementById('products-grid');
+            if (!grid) return;
+            grid.innerHTML = '<p style="color:#999;text-align:center;padding:40px;grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p>';
+            const { data, error } = await sbPM.from('products').select('*').order('display_order', { ascending: true }).order('created_at', { ascending: true });
+            if (error) {
+                grid.innerHTML = '<p style="color:red;text-align:center;padding:40px;grid-column:1/-1;">Error loading products: ' + error.message + '</p>';
+                return;
+            }
+            const prods = data || [];
+            productCache = {};
+            prods.forEach(p => { productCache[p.id] = p; });
+            renderProductGrid(prods);
+        }
+
+        function renderProductGrid(prods) {
+            const grid = document.getElementById('products-grid');
+            if (!prods.length) {
+                grid.innerHTML = '<p style="color:#999;text-align:center;padding:60px;grid-column:1/-1;">No products yet.<br>Click <b>Add New Product</b> or <b>Import Existing 15 Bags</b> to get started.</p>';
+                return;
+            }
+            grid.innerHTML = prods.map(p => {
+                const isActive = p.active !== false;
+                const thumb = (p.images && p.images[0])
+                    ? `<img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+                    : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#CCC;font-size:2rem;"><i class='fa-solid fa-image'></i></div>`;
+
+                return `<div style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);display:flex;flex-direction:column;transition:all 0.3s; ${!isActive ? 'filter:grayscale(60%) opacity(0.7);' : ''}" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <div style="height:160px;background:#F8F8F8;overflow:hidden;position:relative;">
+                        ${thumb}
+                        ${!isActive ? `<div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.6);color:white;padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:1px;">HIDDEN</div>` : ''}
+                        <button onclick="toggleProductActive('${p.id}')" style="position:absolute;top:10px;right:10px;background:${isActive ? 'white' : '#F5F5F5'};border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;color:${isActive ? '#1976D2' : '#AAA'};font-size:0.85rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:5;" title="${isActive ? 'Hide Product' : 'Show Product'}">
+                            <i class='fa-solid ${isActive ? 'fa-eye' : 'fa-eye-slash'}'></i>
+                        </button>
+                    </div>
+                    <div style="padding:15px;flex:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+                            <div>
+                                <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:3px;">${p.name}</h4>
+                                <p style="font-size:0.9rem;color:var(--primary);font-weight:700;">$${parseFloat(p.price).toFixed(2)}</p>
+                            </div>
+                            <div style="display:flex;gap:6px;flex-shrink:0;">
+                                <button onclick="editProductById('${p.id}')" style="background:#F5F5F5;border:none;border-radius:8px;padding:7px 9px;cursor:pointer;font-size:0.75rem;" title="Edit"><i class='fa-solid fa-pen'></i></button>
+                                <button onclick="duplicateProduct('${p.id}')" style="background:#F0EEFF;border:none;border-radius:8px;padding:7px 9px;cursor:pointer;color:#7B61FF;font-size:0.75rem;" title="Duplicate"><i class='fa-solid fa-copy'></i></button>
+                                <button onclick="deleteProduct('${p.id}')" style="background:#FFF0F0;border:none;border-radius:8px;padding:7px 9px;cursor:pointer;color:#FF4D4D;font-size:0.75rem;" title="Delete"><i class='fa-solid fa-trash'></i></button>
+                            </div>
+                        </div>
+                        <p style="font-size:0.72rem;color:#AAA;margin-top:8px;line-height:1.4;">${(p.category || '').substring(0, 45)}</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function editProductById(id) {
+            const p = productCache[id];
+            if (!p) { showToast('Product not found. Please refresh.'); return; }
+            openProductModal(p);
+        }
+
+        function duplicateProduct(id) {
+            const p = productCache[id];
+            if (!p) { showToast('Product not found. Please refresh.'); return; }
+            // Copy all fields but clear the ID and append "- Copy" to the name
+            const copy = { ...p, id: null, name: p.name + ' - Copy', images: [...(p.images || [])] };
+            openProductModal(copy);
+            // Override editingProductId so this saves as NEW, not an update
+            editingProductId = null;
+            document.getElementById('pm-title').textContent = 'Add New Product (Duplicate)';
+            document.getElementById('pm-save-btn').textContent = 'Save as New Product';
+        }
+
+        function openProductModal(productData) {
+            editingProductId = productData ? productData.id : null;
+            productImages = (productData && productData.images) ? [...productData.images] : [];
+            document.getElementById('pm-title').textContent = editingProductId ? 'Edit Product' : 'Add New Product';
+            document.getElementById('pm-save-btn').textContent = editingProductId ? 'Update Product' : 'Save Product';
+            document.getElementById('pm-name').value = productData ? productData.name || '' : '';
+            document.getElementById('pm-desc').value = productData ? productData.description || '' : '';
+            document.getElementById('pm-price').value = productData ? productData.price || '44.00' : '44.00';
+            document.getElementById('pm-stripe').value = productData ? productData.stripe_link || '' : '';
+            document.getElementById('pm-category').value = productData ? productData.category || '' : '';
+            document.getElementById('pm-order').value = productData ? productData.display_order || 0 : 0;
+            renderImagePreviews();
+            document.getElementById('product-modal').style.display = 'flex';
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').style.display = 'none';
+            editingProductId = null;
+            productImages = [];
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById('image-previews');
+            container.innerHTML = '';
+            productImages.forEach((url, i) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'position:relative;width:90px;height:90px;border-radius:10px;overflow:hidden;border:2px solid #EEE;';
+                div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;"><button onclick="removeImage(${i})" style="position:absolute;top:3px;right:3px;background:rgba(255,50,50,0.9);border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;color:white;font-size:0.65rem;display:flex;align-items:center;justify-content:center;padding:0;">&#x2715;</button>`;
+                container.appendChild(div);
+            });
+            if (productImages.length < 4) {
+                const slot = document.createElement('label');
+                slot.htmlFor = 'image-upload-input';
+                slot.style.cssText = 'width:90px;height:90px;border:2px dashed #DDD;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#AAA;font-size:0.7rem;text-align:center;gap:5px;';
+                slot.innerHTML = '<i class="fa-solid fa-plus" style="font-size:1.3rem;"></i>Add Photo';
+                container.appendChild(slot);
+            }
+        }
+
+        function removeImage(index) {
+            productImages.splice(index, 1);
+            renderImagePreviews();
+        }
+
+        async function handleImageUpload(files) {
+            if (!sbPM) { showToast('Storage not connected.'); return; }
+            const btn = document.getElementById('pm-save-btn');
+            for (const file of Array.from(files)) {
+                if (productImages.length >= 4) break;
+                const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+                const filename = Date.now() + '-' + Math.random().toString(36).substr(2, 8) + '.' + ext;
+                btn.textContent = 'Uploading...';
+                btn.disabled = true;
+                const { error } = await sbPM.storage.from('product-images').upload(filename, file, { contentType: file.type });
+                if (error) { showToast('Upload failed: ' + error.message); }
+                else {
+                    const { data: urlData } = sbPM.storage.from('product-images').getPublicUrl(filename);
+                    productImages.push(urlData.publicUrl);
+                    renderImagePreviews();
+                }
+            }
+            btn.textContent = editingProductId ? 'Update Product' : 'Save Product';
+            btn.disabled = false;
+        }
+
+        async function saveProduct() {
+            const name = document.getElementById('pm-name').value.trim();
+            const price = parseFloat(document.getElementById('pm-price').value);
+            if (!name || isNaN(price)) { showToast('Product name and price are required.'); return; }
+            const payload = {
+                name,
+                description: document.getElementById('pm-desc').value.trim(),
+                price,
+                stripe_link: document.getElementById('pm-stripe').value.trim(),
+                category: document.getElementById('pm-category').value.trim(),
+                display_order: parseInt(document.getElementById('pm-order').value) || 0,
+                images: productImages,
+                active: true
+            };
+            const btn = document.getElementById('pm-save-btn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+            const op = editingProductId
+                ? sbPM.from('products').update(payload).eq('id', editingProductId)
+                : sbPM.from('products').insert([payload]);
+            const { error } = await op;
+            btn.disabled = false;
+            if (error) { showToast('Save failed: ' + error.message); btn.textContent = editingProductId ? 'Update Product' : 'Save Product'; }
+            else { closeProductModal(); loadAdminProducts(); }
+        }
+
+        function deleteProduct(id) {
+            const p = productCache[id];
+            const name = p ? p.name : 'this product';
+            openConfirmModal({
+                title: 'Delete Product?',
+                message: 'Are you sure you want to delete "' + name + '"? This cannot be undone.',
+                icon: '<i class="fa-solid fa-trash-can" style="color:#FF4D4D"></i>',
+                confirmText: 'Delete Permanently',
+                confirmColor: '#FF4D4D',
+                onConfirm: async function () {
+                    const { error } = await sbPM.from('products').delete().eq('id', id);
+                    if (error) showToast('Delete failed: ' + error.message, 'error');
+                    else {
+                        showToast('Product deleted successfully');
+                        loadAdminProducts();
+                    }
+                }
+            });
+        }
+
+        async function toggleProductActive(id) {
+            const p = productCache[id];
+            if (!p) return;
+            const newStatus = p.active === false ? true : false;
+            const { error } = await sbPM.from('products').update({ active: newStatus }).eq('id', id);
+            if (error) {
+                showToast('Visibility update failed: ' + error.message, 'error');
+            } else {
+                showToast(newStatus ? 'Product is now LIVE of storefront' : 'Product is now HIDDEN from storefront');
+                loadAdminProducts();
+            }
+        }
+
+        async function seedProducts() {
+            if (!sbPM) { showToast('Supabase not connected.'); return; }
+            openConfirmModal({
+                title: 'Import Catalog?',
+                message: 'This will import your 15 original bags from products.js into Supabase. Continue?',
+                icon: '<i class="fa-solid fa-file-import" style="color:var(--primary)"></i>',
+                confirmText: 'Import Now',
+                onConfirm: async function () {
+                    try {
+                        const resp = await fetch('./products.js');
+                        const text = await resp.text();
+                        // Extract array using a safe eval approach
+                        const match = text.match(/const products = (\[[\s\S]*?\]);/);
+                        if (!match) { showToast('Could not find products array in products.js'); return; }
+                        const prods = eval(match[1]);
+                        const toInsert = prods.map((p, i) => ({
+                            name: p.name, description: p.description, price: p.price,
+                            stripe_link: p.stripeLink || '', images: p.images || [],
+                            category: p.category || '', display_order: i, active: true
+                        }));
+                        const { error } = await sbPM.from('products').insert(toInsert);
+                        if (error) showToast('Import error: ' + error.message);
+                        else { showToast('\u2705 ' + toInsert.length + ' products imported successfully!'); loadAdminProducts(); }
+                    } catch (e) { showToast('Import failed: ' + e.message); }
+                }
+            });
+        }
+    </script> <!-- BUNKER ADMIN SYSTEM: Fully self-contained, no script.js dependency -->
+    <script>
+
+        var msgCurrentView = 'inbox';
+        var orderCurrentView = 'live';
+
+        // ── MESSAGE CENTER ──────────────────────────────────
+        function loadMessages() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            var list = document.getElementById('message-list');
+            if (!list) return;
+            list.innerHTML = '<div class="message-card"><p style="text-align:center;color:#999;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>';
+            sbPM.from('messages').select('*').order('created_at', { ascending: false }).then(function (res) {
+                var all = res.data || [];
+                var filtered = all.filter(function (m) { return msgCurrentView === 'inbox' ? !m.archived : m.archived; });
+                var badge = document.getElementById('msg-badge');
+                if (badge) badge.textContent = all.filter(function (m) { return !m.archived; }).length;
+                if (!filtered.length) {
+                    list.innerHTML = '<div class="message-card"><p style="text-align:center;color:var(--text-light);">No ' + (msgCurrentView === 'inbox' ? 'active' : 'archived') + ' messages.</p></div>';
+                    return;
+                }
+                list.innerHTML = filtered.map(function (msg) {
+                    return '<div class="message-card" id="msg-card-' + msg.id + '">' +
+                        '<div class="delete-confirm-overlay" id="confirm-' + msg.id + '">' +
+                        '<p style="font-weight:700; color:#FF4D4D; margin:0;">Delete this message permanently?</p>' +
+                        '<div class="confirm-btn-group">' +
+                        '<button class="btn-confirm-delete" onclick="adminDeleteMsg(\'' + msg.id + '\')">Yes, Delete</button>' +
+                        '<button class="btn-cancel-delete" onclick="toggleDeleteConfirm(\'' + msg.id + '\', false)">Cancel</button>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div class="message-meta"><strong style="color:var(--text);">' + (msg.name || '') + '</strong><span>' + new Date(msg.created_at).toLocaleDateString() + '</span></div>' +
+                        '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">' +
+                        '<span class="subject-badge">' + (msg.subject || '(no subject)') + '</span>' +
+                        '<div style="display:flex;gap:10px;">' +
+                        (msgCurrentView === 'inbox'
+                            ? '<button onclick="adminArchiveMsg(\'' + msg.id + '\', true)" title="Archive" style="background:none;border:none;color:var(--text-light);cursor:pointer;"><i class="fa-solid fa-box-archive"></i></button>'
+                            : '<button onclick="adminArchiveMsg(\'' + msg.id + '\', false)" title="Restore" style="background:none;border:none;color:var(--primary);cursor:pointer;"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>') +
+                        '<button onclick="toggleDeleteConfirm(\'' + msg.id + '\', true)" title="Delete" style="background:none;border:none;color:#F44336;cursor:pointer;"><i class="fa-solid fa-trash-can"></i></button>' +
+                        '</div></div>' +
+                        '<p style="margin-bottom:12px;color:var(--text);line-height:1.6;">' + (msg.message || '') + '</p>' +
+                        '<a href="mailto:' + (msg.email || '') + '" style="color:var(--primary);font-size:0.9rem;font-weight:700;"><i class="fa-solid fa-reply"></i> Reply to ' + (msg.email || '') + '</a>' +
+                        '</div>';
+                }).join('');
+            });
+        }
+        function adminArchiveMsg(id, archived) {
+            if (!sbPM) return;
+            sbPM.from('messages').update({ archived: archived }).eq('id', id).then(function () { loadMessages(); });
+        }
+        function toggleDeleteConfirm(id, show) {
+            var overlay = document.getElementById('confirm-' + id);
+            if (overlay) {
+                if (show) overlay.classList.add('active');
+                else overlay.classList.remove('active');
+            }
+        }
+
+        function adminDeleteMsg(id) {
+            sbPM.from('messages').delete().eq('id', id).then(function () { loadMessages(); });
+        }
+
+        // ── VIP LEADS ────────────────────────────────────────
+        function loadLeads() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            var list = document.getElementById('leads-list');
+            if (!list) return;
+            sbPM.from('leads').select('*').order('created_at', { ascending: false }).then(function (res) {
+                var data = res.data || [];
+                if (!data.length) {
+                    list.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--text-light);">No VIP leads yet.</td></tr>';
+                    return;
+                }
+                list.innerHTML = data.map(function (l) {
+                    return '<tr>' +
+                        '<td style="padding:15px;border-bottom:1px solid #EEE;">' + new Date(l.created_at).toLocaleDateString() + '</td>' +
+                        '<td style="padding:15px;border-bottom:1px solid #EEE;font-weight:500;">' + l.email + '</td>' +
+                        '<td style="padding:15px;border-bottom:1px solid #EEE;color:var(--text-light);">' + (l.birthday || 'N/A') + '</td>' +
+                        '<td style="padding:15px;border-bottom:1px solid #EEE;text-align:right;">' +
+                        '<button onclick="copyEmail(\'' + l.email + '\')" style="background:var(--surface);color:var(--primary);border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:0.75rem;">Copy Email</button>' +
+                        '</td></tr>';
+                }).join('');
+            });
+        }
+        function copyEmail(email) { navigator.clipboard.writeText(email).then(function () { showToast('Email copied!'); }); }
+
+        // ── ORDER LEDGER ─────────────────────────────────────
+        function loadOrders() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            var list = document.getElementById('order-history-list');
+            if (!list) return;
+            
+            var isArchived = orderCurrentView === 'vault';
+            
+            sbPM.from('orders').select('*')
+                .eq('archived', isArchived)
+                .order('created_at', { ascending: false })
+                .limit(40)
+                .then(function(res) {
+                    var data = res.data || [];
+                    if (!data.length) {
+                        list.innerHTML = '<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--text-light);">No ' + (isArchived ? 'archived orders' : 'live orders') + ' found.</td></tr>';
+                        return;
+                    }
+                    list.innerHTML = data.map(function(o) {
+                        return '<tr>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;font-weight:500;">' + o.product_name + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;color:var(--text-light);">' + (o.customer_name||'Boutique Sale') + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;text-align:right;font-weight:700;">$' + parseFloat(o.amount).toFixed(2) + '</td>' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;text-align:right;">' +
+                                '<button onclick="adminArchiveOrder(\'' + o.id + '\', ' + !isArchived + ')" title="' + (isArchived ? 'Restore' : 'Archive') + '" style="background:none;border:none;color:' + (isArchived ? 'var(--primary)' : 'var(--text-light)') + ';cursor:pointer;font-size:1.1rem;">' +
+                                    '<i class="fa-solid ' + (isArchived ? 'fa-arrow-up-from-bracket' : 'fa-box-archive') + '"></i>' +
+                                '</button>' +
+                            '</td>' +
+                        '</tr>';
+                    }).join('');
+                });
+        }
+
+        function adminArchiveOrder(id, archived) {
+            if (!sbPM) return;
+            sbPM.from('orders').update({ archived: archived }).eq('id', id).then(function(res) {
+                if (res.error) {
+                    showToast('Failed to toggle order status. Check if you run the SQL command.', 'error');
+                } else {
+                    showToast('Order ' + (archived ? 'archived' : 'restored') + '!');
+                    loadOrders();
+                }
+            });
+        }
+
+        // ── INVENTORY ────────────────────────────────────────
+        async function loadInventory() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            var list = document.getElementById('inventory-list');
+            if (!list) return;
+
+            // Parallel fetch inventory and full products
+            const [invRes, prodRes] = await Promise.all([
+                sbPM.from('inventory').select('*'),
+                sbPM.from('products').select('name, images').order('name', { ascending: true })
+            ]);
+
+            var invData = invRes.data || [];
+            var prodData = prodRes.data || [];
+
+            // Map stock counts for fast lookup
+            var stockMap = {};
+            invData.forEach(i => { stockMap[i.product_name] = i.stock_count; });
+
+            // Ensure every catalog product is in the display list
+            var displayList = prodData.map(function (p) {
+                return {
+                    product_name: p.name,
+                    stock_count: stockMap[p.name] !== undefined ? stockMap[p.name] : 0,
+                    image: (p.images && p.images.length > 0) ? p.images[0] : 'assets/logos/icon_purse_xl.png'
+                };
+            });
+
+            if (!displayList.length) {
+                list.innerHTML = '<div class="message-card"><p style="text-align:center;color:var(--text-light);">No products found in catalog.</p></div>';
+                return;
+            }
+
+            list.innerHTML = displayList.map(function (item) {
+                var isLow = item.stock_count <= 5;
+
+                return '<div class="message-card" style="display:flex;align-items:center;gap:18px;padding:12px 20px;">' +
+                    '<div style="width:50px;height:50px;border-radius:12px;overflow:hidden;background:#F8F9FA;border:1px solid #EEE;flex-shrink:0;">' +
+                    '<img src="' + item.image + '" style="width:100%;height:100%;object-fit:cover;">' +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                    '<strong style="font-size:0.95rem;display:block;margin-bottom:2px;">' + item.product_name + '</strong>' +
+                    '<p style="font-size:0.75rem;color:' + (isLow ? '#F44336' : 'var(--text-light)') + ';font-weight:' + (isLow ? '700' : '500') + ';">' +
+                    (isLow ? 'LOW STOCK: ' : '') + item.stock_count + ' units available</p>' +
+                    '</div>' +
+                    '<span style="font-size:0.65rem;color:var(--text-light);text-transform:uppercase;white-space:nowrap;opacity:0.6;">Cloud Synced</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        // ── BUSINESS METRICS ─────────────────────────────────
+        function loadMetrics() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            sbPM.from('business_metrics').select('*').eq('id', 1).single().then(function (res) {
+                if (!res.data) return;
+                var d = res.data;
+                var salesEl = document.getElementById('display-sales');
+                var trendEl = document.getElementById('display-sales-trend');
+                var custEl = document.getElementById('display-customers');
+                var cartsEl = document.getElementById('display-carts');
+                if (salesEl) salesEl.textContent = '$' + parseFloat(d.sales || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (trendEl) {
+                    var isUp = parseFloat(d.sales_trend || 0) >= 0;
+                    trendEl.innerHTML = '<i class="fa-solid fa-arrow-' + (isUp ? 'up' : 'down') + '"></i> ' + Math.abs(d.sales_trend || 0) + '%';
+                    trendEl.className = 'trend ' + (isUp ? 'up' : 'down');
+                }
+                if (custEl) custEl.textContent = parseInt(d.customers || 0).toLocaleString();
+                if (cartsEl) cartsEl.textContent = parseInt(d.carts || 0).toLocaleString();
+            });
+        }
+
+        // ── POPULATE PRODUCT DROPDOWNS ───────────────────────
+        async function populateProductDropdowns() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            var res = await sbPM.from('products').select('name').order('display_order').order('name');
+            var data = (res.data || []);
+            if (!data.length) return;
+            var opts = '<option value="" disabled selected>Choose a bag...</option>' +
+                data.map(function (p) { return '<option value="' + p.name + '">' + p.name + '</option>'; }).join('');
+            var orderSel = document.getElementById('order-product');
+            var restockSel = document.getElementById('restock-product');
+            if (orderSel) orderSel.innerHTML = opts;
+            if (restockSel) restockSel.innerHTML = opts;
+        }
+
+        // ── MAIN INIT: called on login or page load with valid session ──
+        function initAdminDashboard() {
+            setTimeout(function () {
+                initPM();
+                loadMetrics();
+                loadMessages();
+                loadLeads();
+                loadOrders();
+                loadInventory();
+                populateProductDropdowns();
+                if (typeof loadAdminProducts === 'function') loadAdminProducts();
+            }, 400);
+        }
+
+        // ── ATTACH FORM HANDLERS + AUTH CHECK ON DOM READY ───
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Auth: show dashboard if already logged in
+            if (sessionStorage.getItem('girlee_admin_auth') === 'true') {
+                var loginEl = document.getElementById('login-screen');
+                var dashEl = document.getElementById('dashboard-content');
+                if (loginEl) loginEl.style.display = 'none';
+                if (dashEl) dashEl.style.display = 'block';
+                initAdminDashboard();
+            }
+
+            // Tab switching
+            var tabs = document.querySelectorAll('#admin-tabs li');
+            var contents = document.querySelectorAll('.tab-content');
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (t) { t.classList.remove('active'); });
+                    contents.forEach(function (c) { c.style.display = 'none'; });
+                    tab.classList.add('active');
+                    var target = document.getElementById('tab-' + tab.dataset.tab);
+                    if (target) target.style.display = 'block';
+                    var name = tab.dataset.tab;
+                    if (name === 'stats') loadMetrics();
+                    if (name === 'messages') loadMessages();
+                    if (name === 'leads') loadLeads();
+                    if (name === 'orders') { loadOrders(); populateProductDropdowns(); }
+                    if (name === 'inventory') { loadInventory(); populateProductDropdowns(); }
+                    if (name === 'products') { if (typeof loadAdminProducts === 'function') loadAdminProducts(); }
+                });
+            });
+
+            // Logout
+            var logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) logoutBtn.onclick = function () {
+                sessionStorage.removeItem('girlee_admin_auth');
+                document.getElementById('dashboard-content').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'block';
+                document.getElementById('pword').value = '';
+                document.getElementById('error-msg').style.display = 'none';
+            };
+
+            // Message inbox/archive toggles
+            var inboxBtn = document.getElementById('view-inbox');
+            var archiveBtn = document.getElementById('view-archive');
+            if (inboxBtn) inboxBtn.addEventListener('click', function () {
+                msgCurrentView = 'inbox';
+                inboxBtn.style.background = 'white'; inboxBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (archiveBtn) { archiveBtn.style.background = 'transparent'; archiveBtn.style.boxShadow = 'none'; }
+                loadMessages();
+            });
+            if (archiveBtn) archiveBtn.addEventListener('click', function () {
+                msgCurrentView = 'archive';
+                archiveBtn.style.background = 'white'; archiveBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (inboxBtn) { inboxBtn.style.background = 'transparent'; inboxBtn.style.boxShadow = 'none'; }
+                loadMessages();
+            });
+
+            // Order Ledger toggles
+            var orderActiveBtn = document.getElementById('view-orders-active');
+            var orderVaultBtn = document.getElementById('view-orders-archived');
+            if (orderActiveBtn) orderActiveBtn.addEventListener('click', function () {
+                orderCurrentView = 'live';
+                orderActiveBtn.style.background = 'white'; orderActiveBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (orderVaultBtn) { orderVaultBtn.style.background = 'transparent'; orderVaultBtn.style.boxShadow = 'none'; }
+                loadOrders();
+            });
+            if (orderVaultBtn) orderVaultBtn.addEventListener('click', function () {
+                orderCurrentView = 'vault';
+                orderVaultBtn.style.background = 'white'; orderVaultBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                if (orderActiveBtn) { orderActiveBtn.style.background = 'transparent'; orderActiveBtn.style.boxShadow = 'none'; }
+                loadOrders();
+            });
+
+            var archiveAllBtn = document.getElementById('archive-all-btn');
+            if (archiveAllBtn) archiveAllBtn.addEventListener('click', function () {
+                if (!sbPM) return;
+                openConfirmModal({
+                    title: 'Archive Inbox?',
+                    message: 'Move all current inbox messages to the vault?',
+                    icon: '<i class="fa-solid fa-box-archive" style="color:var(--primary)"></i>',
+                    confirmText: 'Archive All',
+                    onConfirm: function () {
+                        sbPM.from('messages').update({ archived: true }).eq('archived', false).then(function () { loadMessages(); });
+                    }
+                });
+            });
+            var clearMsgBtn = document.getElementById('clear-messages-btn');
+            if (clearMsgBtn) clearMsgBtn.addEventListener('click', function () {
+                if (!sbPM) return;
+                openConfirmModal({
+                    title: 'Delete Everything?',
+                    message: 'This will permanently delete ALL messages from your database. This cannot be undone.',
+                    icon: '<i class="fa-solid fa-triangle-exclamation" style="color:#FF4D4D"></i>',
+                    confirmText: 'Delete Permanently',
+                    confirmColor: '#FF4D4D',
+                    onConfirm: function () {
+                        sbPM.from('messages').delete().neq('id', 0).then(function () { loadMessages(); });
+                    }
+                });
+            });
+
+            // Order form
+            var orderForm = document.getElementById('record-order-form');
+            if (orderForm) orderForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!sbPM) { showToast('Not connected.'); return; }
+                var product_name = document.getElementById('order-product').value;
+                var amount = document.getElementById('order-amount').value;
+                var customer_name = document.getElementById('order-customer').value;
+                if (!product_name || !amount) { showToast('Select a product and enter amount.'); return; }
+                var res = await sbPM.from('orders').insert([{ product_name, amount, customer_name }]);
+                if (res.error) { showToast('Error: ' + res.error.message); return; }
+                var inv = await sbPM.from('inventory').select('stock_count').eq('product_name', product_name).single();
+                if (inv.data) await sbPM.from('inventory').update({ stock_count: Math.max(0, inv.data.stock_count - 1) }).eq('product_name', product_name);
+                var allSales = await sbPM.from('orders').select('amount');
+                if (allSales.data) {
+                    var total = allSales.data.reduce(function (s, o) { return s + parseFloat(o.amount); }, 0);
+                    await sbPM.from('business_metrics').update({ sales: total, customers: allSales.data.length }).eq('id', 1);
+                }
+                orderForm.reset(); populateProductDropdowns(); loadOrders(); loadMetrics(); loadInventory();
+                showToast('Order recorded!');
+            });
+
+            // Restock form
+            var restockForm = document.getElementById('restock-form');
+            if (restockForm) restockForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!sbPM) { showToast('Not connected.'); return; }
+                var product_name = document.getElementById('restock-product').value;
+                var stock_count = parseInt(document.getElementById('restock-count').value);
+                var res = await sbPM.from('inventory').upsert({ product_name, stock_count }, { onConflict: 'product_name' });
+                if (res.error) { showToast('Error: ' + res.error.message); return; }
+                restockForm.reset(); populateProductDropdowns(); loadInventory();
+                showToast('Stock updated for ' + product_name + '!');
+            });
+
+            // Metrics form
+            var metricsForm = document.getElementById('metrics-update-form');
+            if (metricsForm) metricsForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                if (!sbPM) return;
+                await sbPM.from('business_metrics').update({
+                    sales: document.getElementById('input-sales').value || 0,
+                    sales_trend: document.getElementById('input-sales-trend').value || 0,
+                    customers: document.getElementById('input-customers').value || 0,
+                    carts: document.getElementById('input-carts').value || 0
+                }).eq('id', 1);
+                loadMetrics();
+                var s = document.getElementById('metrics-success');
+                if (s) { s.style.display = 'block'; setTimeout(function () { s.style.display = 'none'; }, 3000); }
+            });
+
+            // Password change form
+            var pwForm = document.getElementById('password-change-form');
+            if (pwForm) pwForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var current = document.getElementById('current-pword').value;
+                var next = document.getElementById('new-pword').value;
+                var confirmPw = document.getElementById('confirm-pword').value;
+                var errorEl = document.getElementById('pw-error');
+                var successEl = document.getElementById('pw-success');
+                var stored = localStorage.getItem('girlee_bunker_pw') || 'ThePhatFrog2026';
+                errorEl.style.display = 'none'; successEl.style.display = 'none';
+                if (current !== stored) { errorEl.textContent = 'Current password incorrect.'; errorEl.style.display = 'block'; return; }
+                if (next !== confirmPw) { errorEl.textContent = 'Passwords do not match.'; errorEl.style.display = 'block'; return; }
+                if (next.length < 4) { errorEl.textContent = 'Password too short (min 4 chars).'; errorEl.style.display = 'block'; return; }
+                localStorage.setItem('girlee_bunker_pw', next);
+                successEl.style.display = 'block';
+                pwForm.reset();
+            });
+        });
+    </script>
+</body>
+
+</html>

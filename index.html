@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GirleeBag | Fun & Trendy Purses and Accessories for Girls & Ladies</title>
+    <meta name="description"
+        content="Shop GirleeBag for trendy, high-quality purses and accessories designed for girls and ladies aged 8-28. Find the perfect stylish everything-bag today. Fast shipping!">
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Stripe SDK -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // GirleeBag Billing Center - Active Storefront
+        const STRIPE_PUBLISHABLE_KEY = 'PASTE_YOUR_STRIPE_PUBLIC_KEY_HERE';
+    </script>
+    <link rel="icon" type="image/png" href="assets/logos/icon_purse_xl.png">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- STICKY NAVIGATION -->
+    <header id="main-header">
+        <div class="container">
+            <nav class="nav-main">
+                <!-- Navigation Left -->
+                <ul class="nav-links nav-left">
+                    <li><a href="#shop">Shop</a></li>
+                    <li><a href="#about">About</a></li>
+                </ul>
+
+                <!-- Mobile Header Tools (Hidden on Desktop) -->
+                <div class="mobile-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+
+                <!-- Logo Center -->
+                <div class="logo">
+                    <a href="index.html">
+                        <img src="assets/logos/logo_user_white.png" alt="GirleeBag Logo" class="logo-white">
+                        <img src="assets/logos/main_logo_circle.png" alt="GirleeBag Logo" class="logo-black">
+                    </a>
+                </div>
+
+                <!-- Navigation Right -->
+                <div class="nav-right">
+                    <ul class="nav-links nav-right-links">
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                    <div class="nav-icons">
+                        <i class="fa-solid fa-user"></i>
+                        <div class="cart-icon">
+                            <i class="fa-solid fa-bag-shopping"></i>
+                            <span class="cart-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- HERO SLIDER SECTION -->
+        <section class="hero-slider">
+            <div class="slides">
+                <div class="slide active" style="background-image: url('assets/images/hero.png');">
+                    <div class="container">
+                        <div class="hero-content">
+                            <span class="brand-tag">GIRLEEBAG ORIGINAL</span>
+                            <h1>Trendy & Fun Accessories for Girls</h1>
+                            <p>The fun, stylish 'everything' bag for carrying anything & everything. Designed for ages 8 to 28.</p>
+                            <a href="#shop" class="cta-button">Shop Best Sellers</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide" style="background-image: url('assets/images/hero_2.png');">
+                    <div class="container">
+                        <div class="hero-content">
+                            <span class="brand-tag">GIRLEEBAG STYLE</span>
+                            <h1>Sophisticated Styles for Every Occasion</h1>
+                            <p>From yoga and makeup to beach days and pet adventures, GirleeBag is your ultimate stylish companion.</p>
+                            <a href="#shop" class="cta-button">Shop The Collection</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide" style="background-image: url('assets/images/hero_3.png');">
+                    <div class="container">
+                        <div class="hero-content">
+                            <span class="brand-tag">GIRLEEBAG DROPS</span>
+                            <h1>Express Her Creative Spirit</h1>
+                            <p>Art-inspired designs for girls who aren't afraid to stand out and be unique.</p>
+                            <a href="#shop" class="cta-button">Discover Unique Drops</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="slide" style="background-image: url('assets/images/hero_4.png');">
+                    <div class="container">
+                        <div class="hero-content">
+                            <span class="brand-tag">GIRLEEBAG URBAN</span>
+                            <h1>Modern Vibes & Urban Energy</h1>
+                            <p>Cool, edgy accessories for the trendsetter who rules the city streets.</p>
+                            <a href="#shop" class="cta-button">Shop New Arrivals</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="slider-nav">
+                <span class="dot active" data-slide="0"></span>
+                <span class="dot" data-slide="1"></span>
+                <span class="dot" data-slide="2"></span>
+                <span class="dot" data-slide="3"></span>
+            </div>
+        </section>
+
+        <!-- BRAND STORY -->
+        <section id="about" class="brand-story">
+            <div class="container">
+                <span class="section-badge">OUR STORY</span>
+                <h2>The GirleeBag Personality</h2>
+                <p>GirleeBags aren't just accessories—they're a way for young girls and ladies to express their unique personality.
+                    Whether it's for yoga, makeup, a day at the beach, or even carrying your pup, GirleeBag is the fun, stylish 'everything' bag
+                    designed for carrying anything & everything you can think of.</p>
+                
+                <div class="quality-specs">
+                    <div class="spec-item">
+                        <i class="fa-solid fa-gem"></i>
+                        <span>100% PU Faux Leather</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-shield-heart"></i>
+                        <span>Tough & Durable</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Classic Robust Zipper</span>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fa-solid fa-venus"></i>
+                        <span>For Girls & Ladies 8 to 28</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRODUCT GRID OPTIMIZATION -->
+        <section id="shop" class="products">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Best Sellers</h2>
+                </div>
+                <div id="product-container" class="product-grid">
+                    <!-- Products will be dynamically rendered here from products.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TRUST SIGNALS -->
+        <section class="testimonials">
+            <div class="container">
+                <h2 style="text-align: center; margin-bottom: 50px;">What Parents Are Saying</h2>
+                <div class="testimonial-grid">
+                    <div class="testimonial-card">
+                        <div class="rating" style="margin-bottom: 10px;">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <p>"My 10-year-old hasn't put her Pearl Bubble bag down since her birthday! Great quality and
+                            fast shipping."</p>
+                        <span class="author">- Sarah M.</span>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="rating" style="margin-bottom: 10px;">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <p>"The sequins are so durable! My daughter takes it everywhere. It's the perfect size for her
+                            gadgets."</p>
+                        <span class="author">- Jennifer L.</span>
+                    </div>
+                    <div class="testimonial-card">
+                        <div class="rating" style="margin-bottom: 10px;">
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <p>"Finally a store that understands what's trendy for teens! Highly recommend for gifts."</p>
+                        <span class="author">- Mike T.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="trust-banner">
+            <div class="container">
+                <div class="trust-items">
+                    <div class="trust-item">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Secure Checkout</span>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span>Fast Shipping</span>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Easy 30-Day Returns</span>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer style="background: var(--text); color: var(--white); padding: 80px 0 20px;">
+        <div class="container">
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
+                <div>
+                    <img src="assets/logos/logo_script_pink.png" alt="Girlee"
+                        style="height: 120px; margin-bottom: 20px;">
+                    <p style="opacity: 0.7;">The Girlee Company - Empowering style for the next generation.</p>
+                </div>
+                <div>
+                    <h4>Quick Links</h4>
+                    <ul style="opacity: 0.7; margin-top: 10px;">
+                        <li><a href="returns.html">Returns & Exchanges</a></li>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>Connect</h4>
+                    <div style="display: flex; gap: 20px; font-size: 1.5rem; margin-top: 10px;">
+                        <a href="https://www.instagram.com/girleebag" target="_blank" style="color: inherit; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="https://www.tiktok.com/@girleebag" target="_blank" style="color: inherit; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'"><i class="fa-brands fa-tiktok"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div
+                style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: center; font-size: 0.8rem; opacity: 0.5;">
+                &copy; 2026 The Girlee Company. All rights reserved. GirleeBag.com
+            </div>
+            <div style="text-align: center; margin-top: 30px; opacity: 0.5;">
+                <img src="assets/logos/logo_brush.png" alt="Girlee Brush Logo" style="height: 100px;">
+            </div>
+        </div>
+    </footer>
+
+    <!-- LEAD CAPTURE POP-UP -->
+    <div id="lead-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Get 15% Off Your First Order!</h2>
+            <p>Join the GirleeBag VIP list for exclusive new drops and a special discount on her birthday.</p>
+            <form class="modal-form">
+                <input type="email" placeholder="Email Address" required>
+                <input type="text" placeholder="Birthday Month (Optional)">
+                <button type="submit">Claim My 15% Off</button>
+            </form>
+            <span class="no-thanks">No thanks, I prefer paying full price</span>
+        </div>
+    </div>
+
+    <!-- CART DRAWER -->
+    <div id="cart-overlay" class="cart-bg-overlay" style="background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); display: none;"></div>
+    <aside id="cart-drawer" class="cart-drawer">
+        <div class="cart-header">
+            <h3>Your Boutique Bag</h3>
+            <span id="close-cart" class="modal-close">&times;</span>
+        </div>
+        <div id="cart-items-container" class="cart-body">
+            <!-- Items injected via JS -->
+            <div class="empty-cart-msg" style="text-align: center; padding: 50px 20px; opacity: 0.5;">
+                <i class="fa-solid fa-bag-shopping" style="font-size: 3rem; margin-bottom: 20px; display: block;"></i>
+                <p>Your bag is empty.</p>
+                <p style="font-size: 0.8rem;">Discover your next favorite style!</p>
+            </div>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total-row">
+                <span>Subtotal</span>
+                <span id="cart-subtotal" style="font-weight: 700;">$0.00</span>
+            </div>
+            <p style="font-size: 0.7rem; color: var(--text-light); margin-bottom: 20px;">Shipping & taxes calculated at checkout.</p>
+            <button id="checkout-btn" class="cta-button" style="width: 100%;"><b>SECURE CHECKOUT</b></button>
+            <button id="continue-shopping" style="background: none; border: 1.5px solid var(--primary); color: var(--primary); font-size: 0.85rem; font-weight: 700; margin-top: 10px; cursor: pointer; width: 100%; padding: 12px; border-radius: 12px; font-family: 'Outfit', sans-serif; transition: all 0.2s;">← Continue Shopping</button>
+            <button id="clear-cart" style="background: none; border: none; color: var(--text-light); font-size: 0.75rem; margin-top: 10px; cursor: pointer; text-decoration: underline; width: 100%;">Clear All Items</button>
+        </div>
+    </aside>
+
+    <!-- PRODUCT DETAIL MODAL -->
+    <div id="product-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close product-modal-close">&times;</span>
+            <div class="product-detail-grid">
+                <div class="product-gallery">
+                    <div class="main-image-container">
+                        <img id="modal-main-image" src="" alt="Product Large">
+                    </div>
+                    <div id="modal-thumbnails" class="thumbnail-list">
+                        <!-- Thumbnails will be injected here -->
+                    </div>
+                </div>
+                <div class="product-info-panel">
+                    <span id="modal-category" class="section-badge">CATEGORY</span>
+                    <h2 id="modal-title">Product Name</h2>
+                    <p id="modal-description">Detailed description will appear here.</p>
+                    <div class="modal-price-row">
+                        <span id="modal-price" class="price">$0.00</span>
+                        <div class="modal-qty-selector">
+                            <button class="modal-qty-btn" id="modal-qty-minus">-</button>
+                            <span id="modal-qty-display">1</span>
+                            <button class="modal-qty-btn" id="modal-qty-plus">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions-grid">
+                        <button class="add-to-cart-modal modal-add-btn">
+                            <b>ADD TO CART</b>
+                        </button>
+                        <button class="buy-now-btn modal-buy-btn">
+                            <b>BUY NOW</b>
+                        </button>
+                    </div>
+
+                    <div class="modal-specs">
+                        <ul>
+                            <li><i class="fa-solid fa-check"></i> 100% PU Faux Leather</li>
+                            <li><i class="fa-solid fa-check"></i> High-Quality Zipper</li>
+                            <li><i class="fa-solid fa-check"></i> Multi-use Interior</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>

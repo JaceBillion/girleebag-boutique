@@ -1,0 +1,11 @@
+{
+  "name": "girleebag",
+  "version": "1.0.0",
+  "description": "GirleeBag Boutique Store",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  },
+  "scripts": {
+    "dev": "npx serve -l 12345 ."
+  }
+}
