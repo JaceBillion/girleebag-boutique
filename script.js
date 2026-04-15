@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const product = liveProducts.find(p => p.id == productId);
         if (!product) return;
 
-        const existingItem = cart.find(item => item.id === productId);
+        const existingItem = cart.find(item => item.id == productId);
         if (existingItem) {
             existingItem.quantity += qty;
         } else {
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateQuantity = (productId, delta) => {
-        const item = cart.find(i => i.id === productId);
+        const item = cart.find(i => i.id == productId);
         if (item) {
             item.quantity += delta;
             if (item.quantity <= 0) {
@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const removeFromCart = (productId) => {
-        cart = cart.filter(item => item.id !== productId);
+        cart = cart.filter(item => item.id != productId);
         saveCart();
         renderCart();
         updateCartCount();
