@@ -1461,8 +1461,24 @@
                             loadLeads(); 
                         });
                     }
+            var clearLeadsBtn = document.getElementById('clear-leads-btn');
+            if (clearLeadsBtn) clearLeadsBtn.addEventListener('click', function () {
+                if (!sbPM) return;
+                openConfirmModal({
+                    title: 'Wipe All Leads?',
+                    message: 'This will permanently delete ALL VIP leads from your database. Even archived ones. This cannot be undone.',
+                    icon: '<i class="fa-solid fa-triangle-exclamation" style="color:#FF4D4D"></i>',
+                    confirmText: 'Yes, Delete Everything',
+                    confirmColor: '#FF4D4D',
+                    onConfirm: function () {
+                        sbPM.from('leads').delete().neq('id', 0).then(function () { 
+                            showToast('Database wiped successfully.');
+                            loadLeads(); 
+                        });
+                    }
                 });
             });
+
             var clearMsgBtn = document.getElementById('clear-messages-btn');
             if (clearMsgBtn) clearMsgBtn.addEventListener('click', function () {
                 if (!sbPM) return;
