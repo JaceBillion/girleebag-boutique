@@ -535,7 +535,7 @@
                                         <button id="view-leads-archived" style="padding: 6px 15px; border-radius: 8px; border: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: 0.3s; background: transparent;">Vault (Archived)</button>
                                     </div>
                                     <button id="archive-all-leads-btn" style="background: #F8F9FA; color: var(--text-light); border: 1px solid #EEE; padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Archive All</button>
-                                    <button id="clear-leads-btn" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #FF4B2B; color: #FF4B2B; background: transparent; font-weight: 600; cursor: pointer; font-size: 0.8rem;">Clear Backup</button>
+                                    <button id="delete-selected-leads-btn" disabled style="padding: 8px 15px; border-radius: 8px; border: 1px solid #EEE; color: #999; background: transparent; font-weight: 600; cursor: not-allowed; font-size: 0.8rem;">Delete Selected</button>
                                 </div>
                             </div>
                             <div class="message-card" style="padding: 0; overflow: hidden;">
@@ -543,6 +543,9 @@
                                     style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
                                     <thead style="background: #F8F9FA;">
                                         <tr>
+                                            <th style="padding: 15px; border-bottom: 1px solid #EEE; width: 40px;">
+                                                <input type="checkbox" id="leads-select-all" style="cursor: pointer;">
+                                            </th>
                                             <th style="padding: 15px; border-bottom: 1px solid #EEE;">Joined</th>
                                             <th style="padding: 15px; border-bottom: 1px solid #EEE;">Email</th>
                                             <th style="padding: 15px; border-bottom: 1px solid #EEE;">Birthday</th>
@@ -1089,6 +1092,7 @@
         var msgCurrentView = 'inbox';
         var orderCurrentView = 'live';
         var leadsCurrentView = 'inbox';
+        var selectedLeadIds = [];
 
         // ── MESSAGE CENTER ──────────────────────────────────
         function loadMessages() {
@@ -1155,17 +1159,26 @@
             
             var isArchived = leadsCurrentView === 'vault';
             
+            // Reset selection when loading new view
+            selectedLeadIds = [];
+            var masterCheck = document.getElementById('leads-select-all');
+            if (masterCheck) masterCheck.checked = false;
+            updateLeadSelectionUI();
+
             sbPM.from('leads').select('*')
                 .eq('archived', isArchived)
                 .order('created_at', { ascending: false })
                 .then(function (res) {
                     var data = res.data || [];
                     if (!data.length) {
-                        list.innerHTML = '<tr><td colspan="4" style="padding:30px;text-align:center;color:var(--text-light);">No ' + (isArchived ? 'archived leads' : 'active leads') + ' yet.</td></tr>';
+                        list.innerHTML = '<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--text-light);">No ' + (isArchived ? 'archived leads' : 'active leads') + ' yet.</td></tr>';
                         return;
                     }
                     list.innerHTML = data.map(function (l) {
-                        return '<tr>' +
+                        return '<tr data-id="' + l.id + '">' +
+                            '<td style="padding:15px;border-bottom:1px solid #EEE;">' +
+                                '<input type="checkbox" class="lead-checkbox" data-id="' + l.id + '" onchange="toggleLeadSelection(\'' + l.id + '\', this.checked)" style="cursor: pointer;">' +
+                            '</td>' +
                             '<td style="padding:15px;border-bottom:1px solid #EEE;">' + new Date(l.created_at).toLocaleDateString() + '</td>' +
                             '<td style="padding:15px;border-bottom:1px solid #EEE;font-weight:500;">' + l.email + '</td>' +
                             '<td style="padding:15px;border-bottom:1px solid #EEE;color:var(--text-light);">' + (l.birthday || 'N/A') + '</td>' +
@@ -1179,6 +1192,58 @@
                             '</td></tr>';
                     }).join('');
                 });
+        }
+
+        function toggleLeadSelection(id, isSelected) {
+            id = id.toString();
+            if (isSelected) {
+                if (!selectedLeadIds.includes(id)) selectedLeadIds.push(id);
+            } else {
+                selectedLeadIds = selectedLeadIds.filter(function(i) { return i !== id; });
+                var masterCheck = document.getElementById('leads-select-all');
+                if (masterCheck) masterCheck.checked = false;
+            }
+            updateLeadSelectionUI();
+        }
+
+        function updateLeadSelectionUI() {
+            var btn = document.getElementById('delete-selected-leads-btn');
+            if (!btn) return;
+            if (selectedLeadIds.length > 0) {
+                btn.disabled = false;
+                btn.style.borderColor = '#FF4B2B';
+                btn.style.color = '#FF4B2B';
+                btn.style.cursor = 'pointer';
+                btn.textContent = 'Delete Selected (' + selectedLeadIds.length + ')';
+            } else {
+                btn.disabled = true;
+                btn.style.borderColor = '#EEE';
+                btn.style.color = '#999';
+                btn.style.cursor = 'not-allowed';
+                btn.textContent = 'Delete Selected';
+            }
+        }
+
+        function adminDeleteSelectedLeads() {
+            if (!sbPM || selectedLeadIds.length === 0) return;
+            
+            openConfirmModal({
+                title: 'Delete ' + selectedLeadIds.length + ' leads?',
+                message: 'Are you sure you want to permanently delete these entries? This cannot be undone.',
+                icon: '<i class="fa-solid fa-trash-can" style="color:#FF4D4D"></i>',
+                confirmText: 'Delete Permanently',
+                confirmColor: '#FF4D4D',
+                onConfirm: async function () {
+                    const { error } = await sbPM.from('leads').delete().in('id', selectedLeadIds);
+                    if (error) {
+                        showToast('Delete failed: ' + error.message, 'error');
+                    } else {
+                        showToast(selectedLeadIds.length + ' leads deleted successfully.');
+                        selectedLeadIds = [];
+                        loadLeads();
+                    }
+                }
+            });
         }
 
         function adminArchiveLead(id, archived) {
@@ -1464,23 +1529,26 @@
                 });
             });
 
-            var clearLeadsBtn = document.getElementById('clear-leads-btn');
-            if (clearLeadsBtn) clearLeadsBtn.addEventListener('click', function () {
-                if (!sbPM) return;
-                openConfirmModal({
-                    title: 'Wipe All Leads?',
-                    message: 'This will permanently delete ALL VIP leads from your database. Even archived ones. This cannot be undone.',
-                    icon: '<i class="fa-solid fa-triangle-exclamation" style="color:#FF4D4D"></i>',
-                    confirmText: 'Yes, Delete Everything',
-                    confirmColor: '#FF4D4D',
-                    onConfirm: function () {
-                        sbPM.from('leads').delete().neq('id', 0).then(function () { 
-                            showToast('Database wiped successfully.');
-                            loadLeads(); 
-                        });
-                    }
+            var deleteSelectedBtn = document.getElementById('delete-selected-leads-btn');
+            if (deleteSelectedBtn) {
+                deleteSelectedBtn.addEventListener('click', function () {
+                    adminDeleteSelectedLeads();
                 });
-            });
+            }
+
+            var selectAllCheck = document.getElementById('leads-select-all');
+            if (selectAllCheck) {
+                selectAllCheck.addEventListener('change', function () {
+                    var isChecked = this.checked;
+                    var checks = document.querySelectorAll('.lead-checkbox');
+                    selectedLeadIds = [];
+                    checks.forEach(function (c) {
+                        c.checked = isChecked;
+                        if (isChecked) selectedLeadIds.push(c.dataset.id.toString());
+                    });
+                    updateLeadSelectionUI();
+                });
+            }
 
             var clearMsgBtn = document.getElementById('clear-messages-btn');
             if (clearMsgBtn) clearMsgBtn.addEventListener('click', function () {
