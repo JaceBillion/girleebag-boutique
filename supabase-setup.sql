@@ -68,5 +68,15 @@ insert into business_metrics (id, sales, sales_trend, customers, carts)
 values (1, 0, 0, 0, 0) on conflict (id) do nothing;
 
 -- ============================================
--- Done! All 5 admin tables are ready.
+-- Done! All 6 admin tables are ready.
 -- ============================================
+
+-- 6. SITE TRAFFIC (Visitor Logging)
+create table if not exists site_traffic (
+  id bigserial primary key,
+  path text not null,
+  visited_at timestamp with time zone default now()
+);
+alter table site_traffic enable row level security;
+drop policy if exists "Allow all on site_traffic" on site_traffic;
+create policy "Allow all on site_traffic" on site_traffic for all using (true) with check (true);

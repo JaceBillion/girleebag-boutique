@@ -425,6 +425,16 @@
                                     <div class="trend down" id="display-carts-trend"><i
                                             class="fa-solid fa-arrow-down"></i> 0%</div>
                                 </div>
+                                <div class="stat-card" style="background: var(--surface);">
+                                    <span>Total Traffic</span>
+                                    <h3 id="display-total-traffic">0</h3>
+                                    <div class="trend up"><i class="fa-solid fa-globe"></i> Lifetime</div>
+                                </div>
+                                <div class="stat-card" style="background: #FFF5F7;">
+                                    <span>Today's Traffic</span>
+                                    <h3 id="display-today-traffic">0</h3>
+                                    <div class="trend up"><i class="fa-solid fa-calendar-day"></i> Active</div>
+                                </div>
                             </div>
                             <p
                                 style="font-size: 0.8rem; color: var(--text-light); text-align: center; margin-top: 10px;">
@@ -1379,6 +1389,30 @@
             });
         }
 
+        // ── TRAFFIC METRICS ──────────────────────────────────
+        function loadTraffic() {
+            if (!sbPM) initPM();
+            if (!sbPM) return;
+            
+            // Get Lifetime Total
+            sbPM.from('site_traffic').select('id', { count: 'exact', head: true }).then(function(res) {
+                var totalEl = document.getElementById('display-total-traffic');
+                if (totalEl && !res.error) {
+                    totalEl.textContent = (res.count || 0).toLocaleString();
+                }
+            });
+            
+            // Get Today (last 24 hours)
+            var yesterday = new Date();
+            yesterday.setHours(yesterday.getHours() - 24);
+            sbPM.from('site_traffic').select('id', { count: 'exact', head: true }).gte('visited_at', yesterday.toISOString()).then(function(res) {
+                var todayEl = document.getElementById('display-today-traffic');
+                if (todayEl && !res.error) {
+                    todayEl.textContent = (res.count || 0).toLocaleString();
+                }
+            });
+        }
+
         // ── POPULATE PRODUCT DROPDOWNS ───────────────────────
         async function populateProductDropdowns() {
             if (!sbPM) initPM();
@@ -1399,6 +1433,7 @@
             setTimeout(function () {
                 initPM();
                 loadMetrics();
+                loadTraffic();
                 loadMessages();
                 loadLeads();
                 loadOrders();

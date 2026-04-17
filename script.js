@@ -403,6 +403,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Render — loads from Supabase first, falls back to products.js
     initProducts();
 
+    // --- SITE TRAFFIC TRACKING ---
+    try {
+        // Only ping if Supabase is connected and we haven't logged this session yet
+        if (supabase && !sessionStorage.getItem('girlee_visited')) {
+            supabase.from('site_traffic').insert([{ path: window.location.pathname }])
+                .then(({ error }) => {
+                    if (!error) {
+                        sessionStorage.setItem('girlee_visited', 'true');
+                    }
+                })
+                .catch(() => {}); // Fail silently
+        }
+    } catch(e) {
+        // Protect storefront from any tracking errors
+        console.warn("Traffic log skipped");
+    }
+
+
     window.addEventListener('scroll', () => {
         if (window.scrollY > 50) header.classList.add('scrolled');
         else header.classList.remove('scrolled');
