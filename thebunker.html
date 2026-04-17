@@ -431,9 +431,16 @@
                                     <div class="trend up"><i class="fa-solid fa-globe"></i> Lifetime</div>
                                 </div>
                                 <div class="stat-card" style="background: #FFF5F7;">
-                                    <span>Today's Traffic</span>
-                                    <h3 id="display-today-traffic">0</h3>
-                                    <div class="trend up"><i class="fa-solid fa-calendar-day"></i> Active</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="margin: 0;">Period Traffic</span>
+                                        <select id="traffic-period-select" onchange="updateTrafficPeriod()" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 5px; border: 1px solid #ffd1e3; background: white; color: var(--text); outline: none; cursor: pointer;">
+                                            <option value="today">Today (24h)</option>
+                                            <option value="week">Past 7 Days</option>
+                                            <option value="month">Past 30 Days</option>
+                                        </select>
+                                    </div>
+                                    <h3 id="display-period-traffic">0</h3>
+                                    <div class="trend up"><i class="fa-solid fa-users"></i> Active Visitors</div>
                                 </div>
                             </div>
                             <p
@@ -1402,13 +1409,30 @@
                 }
             });
             
-            // Get Today (last 24 hours)
-            var yesterday = new Date();
-            yesterday.setHours(yesterday.getHours() - 24);
-            sbPM.from('site_traffic').select('id', { count: 'exact', head: true }).gte('visited_at', yesterday.toISOString()).then(function(res) {
-                var todayEl = document.getElementById('display-today-traffic');
-                if (todayEl && !res.error) {
-                    todayEl.textContent = (res.count || 0).toLocaleString();
+            // Initialize period dropdown traffic
+            updateTrafficPeriod();
+        }
+
+        function updateTrafficPeriod() {
+            if (!sbPM) return;
+            
+            var period = document.getElementById('traffic-period-select');
+            var val = period ? period.value : 'today';
+
+            var startDate = new Date();
+            if (val === 'today') {
+                startDate.setHours(startDate.getHours() - 24);
+            } else if (val === 'week') {
+                startDate.setDate(startDate.getDate() - 7);
+            } else if (val === 'month') {
+                startDate.setDate(startDate.getDate() - 30);
+            }
+
+            // Get count since startDate
+            sbPM.from('site_traffic').select('id', { count: 'exact', head: true }).gte('visited_at', startDate.toISOString()).then(function(res) {
+                var periodEl = document.getElementById('display-period-traffic');
+                if (periodEl && !res.error) {
+                    periodEl.textContent = (res.count || 0).toLocaleString();
                 }
             });
         }
